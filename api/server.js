@@ -1,5 +1,3 @@
-// api/server.js
-
 import { db } from "../lib/firebaseAdmin.js";
 import { Client } from "@line/bot-sdk";
 import dotenv from "dotenv";
