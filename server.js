@@ -4,22 +4,23 @@
 import express from "express";
 import dotenv from "dotenv";
 
-// Routes
+// ほかのルート
 import webhookRouter from "./routes/webhook.js";
 import mailRouter from "./routes/mail.js";
 import reportRouter from "./routes/report.js";
 
 dotenv.config();
+
 const app = express();
 app.use(express.json());
 
-// Line Webhook
+// LINE Webhook
 app.use("/webhook", webhookRouter);
 
-// Mail sending route
+// メール送信用
 app.use("/mail", mailRouter);
 
-// Report route (for Dify to POST, for instance)
+// レポート用
 app.use("/report", reportRouter);
 
 const PORT = process.env.PORT || 3000;

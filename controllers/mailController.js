@@ -8,6 +8,8 @@ import { generatePdfFromHtml } from "../services/pdfGenerator.js";
 import { sendMailWithSes } from "../services/sendMail.js";
 
 /**
+ * メール送信テストのコントローラ例
+ *
  * POST /mail/send
  * body: {
  *   "to": "someone@example.com",
@@ -22,7 +24,7 @@ export async function mailController(req, res) {
   try {
     const { to, subject, name, contentA, contentB, attachPdf } = req.body;
 
-    // 1) テンプレ読み込み
+    // 1) テンプレHTMLを読み込み
     const templatePath = path.join(
       process.cwd(),
       "templates",
@@ -34,13 +36,13 @@ export async function mailController(req, res) {
     // 2) HTML生成
     const htmlString = template({ name, contentA, contentB });
 
-    // 3) PDF添付するか
+    // 3) (オプション) PDF生成
     let pdfBuffer = null;
     if (attachPdf) {
       pdfBuffer = await generatePdfFromHtml(htmlString);
     }
 
-    // 4) SES送信
+    // 4) メール送信
     await sendMailWithSes({
       to,
       subject,
