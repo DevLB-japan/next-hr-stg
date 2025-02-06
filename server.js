@@ -4,10 +4,10 @@
 import express from "express";
 import dotenv from "dotenv";
 
-// ほかのルート
+// 他のルート
 import webhookRouter from "./routes/webhook.js";
 import mailRouter from "./routes/mail.js";
-import reportRouter from "./routes/report.js";
+import reportRouter from "./routes/report.js"; // default export from "report.js"
 
 dotenv.config();
 
