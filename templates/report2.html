@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Page2</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 20mm;
+      }
+      body {
+        background-color: #ffffff;
+        font-family: sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+
+      h1 {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 1rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 4px 8px;
+        vertical-align: top;
+      }
+      th {
+        width: 120px; /* 適宜調整 */
+        background-color: #f0f0f0;
+      }
+
+      /* 人物像診断の円グラフ(8/10など)は丸枠で表現してもOK */
+      .circle-score {
+        display: inline-block;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: #ddd;
+        text-align: center;
+        line-height: 60px;
+        margin-right: 1rem;
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>応募者情報</h1>
+    <table>
+      <tr>
+        <th>氏名</th>
+        <td>name</td>
+        <th>回答時間</th>
+        <td>hh:mm～hh:mm</td>
+      </tr>
+      <tr>
+        <th>生年月日</th>
+        <td>yyyy/mm/dd</td>
+        <th>年齢</th>
+        <td>age</td>
+      </tr>
+      <tr>
+        <th>住所</th>
+        <td>東京都〇〇区</td>
+        <th>電話番号</th>
+        <td>090-0000-0000</td>
+      </tr>
+      <tr>
+        <th>メールアドレス</th>
+        <td>sample@example.co.jp</td>
+        <th></th>
+        <td></td>
+      </tr>
+    </table>
+
+    <table>
+      <tr>
+        <th>最終学歴</th>
+        <td>texttexttexttext...</td>
+      </tr>
+      <tr>
+        <th>志望動機</th>
+        <td>texttexttexttext...</td>
+      </tr>
+      <tr>
+        <th>希望職種</th>
+        <td>texttexttexttext</td>
+      </tr>
+      <tr>
+        <th>希望ポジション</th>
+        <td>-</td>
+      </tr>
+      <tr>
+        <th>職務経歴</th>
+        <td>-</td>
+      </tr>
+      <tr>
+        <th>希望年収</th>
+        <td>-</td>
+      </tr>
+      <tr>
+        <th>入社可能時期</th>
+        <td>-</td>
+      </tr>
+    </table>
+
+    <h2>人物像診断</h2>
+    <!-- 8/10の円を5つ並べる例 -->
+    <div>
+      <div class="circle-score">8/10</div>
+      論理的思考力
+    </div>
+    <div>
+      <div class="circle-score">8/10</div>
+      表現力
+    </div>
+    <div>
+      <div class="circle-score">8/10</div>
+      柔軟性
+    </div>
+    <div>
+      <div class="circle-score">8/10</div>
+      主体性
+    </div>
+    <div>
+      <div class="circle-score">8/10</div>
+      協調性
+    </div>
+
+    <p>texttexttexttexttexttexttext ... (人物像診断に関する説明文)</p>
+  </body>
+</html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>A4レイアウト</title>
+    <style>
+      /* 用紙サイズと余白を指定 */
+      @page {
+        size: A4;
+        margin: 20mm; /* ここを調整すると印刷時の余白が変わります */
+      }
+
+      /* ブラウザ表示でもA4相当のレイアウトになるようにする */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #f0f0f0;
+      }
+
+      /* A4サイズ相当の領域 + 全体を囲む枠線 */
+      .interview-summary {
+        width: 210mm; /* A4幅 */
+        min-height: 297mm; /* A4高さ */
+        margin: 0 auto; /* 中央寄せ */
+        padding: 20mm; /* コンテンツ内余白 */
+        background-color: #fff;
+        box-sizing: border-box;
+        border: 1px solid #ccc; /* 全体枠線 */
+        position: relative; /* ページ番号などの絶対配置用 */
+        font-family: "Inter", sans-serif;
+        overflow: hidden;
+      }
+
+      .summary-content {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        justify-content: start;
+        flex: 1;
+      }
+
+      .header {
+        display: flex;
+        min-height: 34px;
+        width: 100%;
+        font-size: 10px;
+        color: #333;
+        font-weight: 500;
+        white-space: nowrap;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        margin-bottom: 8px; /* 適宜余白 */
+      }
+
+      .logo-container {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .company-logo {
+        aspect-ratio: 3.5;
+        object-fit: contain;
+        object-position: center;
+        width: 119px;
+      }
+
+      .interview-date {
+        padding: 4px 8px;
+      }
+
+      .basic-info {
+        display: flex;
+        flex-direction: column;
+        color: #333;
+        margin-bottom: 16px; /* 適宜余白 */
+      }
+
+      .info-header {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        color: #0057a0;
+        font-size: 14px;
+        font-weight: 700;
+        gap: 40px 100px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+
+      .info-title {
+        letter-spacing: 1.4px;
+      }
+
+      .applicant-type {
+        font-size: 12px;
+        font-weight: 400;
+      }
+
+      .info-row {
+        display: flex;
+        width: 100%;
+        gap: 8px;
+        font-size: 10px;
+        font-weight: 500;
+        flex-wrap: wrap;
+      }
+
+      /* 各項目を下線で区切り */
+      .info-item {
+        flex: 1;
+        display: flex;
+        align-items: start;
+        gap: 16px;
+        padding: 8px 0;
+        border-bottom: 1px solid #ddd; /* 下線 */
+        min-width: 220px; /* 崩れにくくするための適当な最小幅 */
+      }
+
+      .info-label {
+        width: 72px;
+        white-space: nowrap;
+      }
+
+      .match-diagnosis {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        margin-bottom: 16px;
+      }
+
+      .diagnosis-header {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        color: #0057a0;
+        font-weight: 700;
+        letter-spacing: 1.4px;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+
+      .diagnosis-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        padding: 0 4px;
+        margin-bottom: 8px;
+      }
+
+      .diagnosis-score {
+        min-width: 240px;
+        font-size: 96px;
+        color: #007acc;
+        font-weight: 700;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+      }
+
+      .diagnosis-chart {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 10px;
+        color: #333;
+        font-weight: 500;
+        justify-content: center;
+        flex: 1;
+        padding: 0 8px;
+        min-width: 200px;
+      }
+
+      .chart-container {
+        display: flex;
+        min-height: 136px;
+        width: 136px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .chart {
+        position: relative;
+        width: 96px;
+        min-height: 99px;
+      }
+
+      .chart-image {
+        position: absolute;
+        width: 65px;
+        height: 74px;
+        left: 9px;
+        bottom: 9px;
+        object-fit: contain;
+      }
+
+      .chart-label {
+        position: absolute;
+        width: 60px;
+        height: 12px;
+        font-size: 10px;
+      }
+
+      .chart-label-1 {
+        right: 18px;
+        top: -14px;
+      }
+      .chart-label-2 {
+        right: -73px;
+        top: 27px;
+        width: 70px;
+      }
+      .chart-label-3 {
+        right: -44px;
+        bottom: -4px;
+      }
+      .chart-label-4 {
+        left: -44px;
+        bottom: -4px;
+        text-align: right;
+      }
+      .chart-label-5 {
+        left: -73px;
+        top: 27px;
+        width: 70px;
+        text-align: right;
+      }
+
+      .evaluation-section {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        margin-bottom: 16px;
+      }
+
+      /* 評価項目に下線 */
+      .evaluation-item {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 8px 0;
+        border-bottom: 1px solid #ddd;
+        flex-wrap: wrap;
+      }
+
+      .evaluation-title {
+        color: #333;
+        width: 96px;
+        min-width: 96px;
+      }
+
+      .evaluation-text {
+        flex: 1;
+        font-size: 10px;
+        color: #000;
+        font-weight: 500;
+        line-height: 15px;
+        min-width: 220px;
+      }
+
+      .evaluation-score {
+        display: flex;
+        align-items: center;
+        color: #0057a0;
+        justify-content: end;
+        width: 34px;
+      }
+
+      .overall-evaluation {
+        display: flex;
+        gap: 16px;
+        padding: 16px 0;
+        flex-wrap: wrap;
+      }
+
+      .overall-title {
+        font-size: 12px;
+        color: #0057a0;
+        font-weight: 700;
+        width: 96px;
+        min-width: 96px;
+      }
+
+      .overall-text {
+        flex: 1;
+        font-size: 10px;
+        color: #000;
+        font-weight: 500;
+        line-height: 15px;
+        min-width: 220px;
+      }
+
+      .page-number {
+        color: #aaa;
+        font-size: 10px;
+        font-weight: 500;
+        text-align: center;
+        position: absolute;
+        right: 50%;
+        bottom: 16px;
+        transform: translateX(50%); /* 中央寄せ */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="interview-summary">
+      <div class="summary-content">
+        <!-- ヘッダー -->
+        <header class="header">
+          <div class="logo-container">
+            <img
+              loading="lazy"
+              src="https://cdn.builder.io/api/v1/image/assets/TEMP/e8a93a5e546486cd136a8c773b4529feb0a447c827bc64dc2fdd045564ff2034?placeholderIfAbsent=true&apiKey=44f31b3c7a9e40f19d1012bf7a32010e"
+              class="company-logo"
+              alt="NEXT.HR AI ChatBot ロゴ"
+            />
+          </div>
+          <div class="interview-date">面接日：2025/2/1</div>
+        </header>
+
+        <!-- 応募者基本情報 -->
+        <section class="basic-info">
+          <div class="info-header">
+            <div class="info-title">応募者</div>
+            <div class="applicant-type">新卒</div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <div class="info-label">氏名</div>
+              <div>山田 太郎 (やまだ たろう)</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">回答時間</div>
+              <div>17:00 〜 18:00</div>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <div class="info-label">生年月日</div>
+              <div>1999年1月1日</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">年齢</div>
+              <div>26歳</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 企業マッチ度診断 -->
+        <section class="match-diagnosis">
+          <div class="diagnosis-header">
+            <div class="diagnosis-title">企業マッチ度診断</div>
+          </div>
+          <div class="diagnosis-content">
+            <!-- スコア -->
+            <div class="diagnosis-score">
+              C
+              <span style="font-size: 14px">(28/50)</span>
+            </div>
+            <div class="diagnosis-chart">
+              <div class="chart-container">
+                <div class="chart">
+                  <img
+                    loading="lazy"
+                    src="https://cdn.builder.io/api/v1/image/assets/TEMP/af9d0f986e90a6d8ae74c684f60c2a7636afdcfc79279aae7dc621c2cb07a600?placeholderIfAbsent=true&apiKey=44f31b3c7a9e40f19d1012bf7a32010e"
+                    class="chart-image"
+                    alt="Diagnostic chart"
+                  />
+                  <div class="chart-label chart-label-1">スキル・経験</div>
+                  <div class="chart-label chart-label-2">人物像・働き方</div>
+                  <div class="chart-label chart-label-3">企業の価値観</div>
+                  <div class="chart-label chart-label-4">キャリアプラン</div>
+                  <div class="chart-label chart-label-5">企業への貢献度</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 評価項目一覧 -->
+          <div class="evaluation-section">
+            <div class="evaluation-item">
+              <div class="evaluation-title">スキル・経験</div>
+              <div class="evaluation-text">
+                texttexttexttexttexttexttexttexttexttexttexttexttexttexttexttexttext
+              </div>
+              <div class="evaluation-score">
+                <div class="score-value">6</div>
+                <div class="score-value">/10</div>
+              </div>
+            </div>
+            <div class="evaluation-item">
+              <div class="evaluation-title">人物像・働き方</div>
+              <div class="evaluation-text">
+                texttexttexttexttexttexttexttexttexttexttexttexttexttexttexttexttext
+              </div>
+              <div class="evaluation-score">
+                <div class="score-value">5</div>
+                <div class="score-value">/10</div>
+              </div>
+            </div>
+            <div class="evaluation-item">
+              <div class="evaluation-title">企業の価値観</div>
+              <div class="evaluation-text">
+                texttexttexttexttexttexttexttexttexttexttexttexttexttexttexttexttext
+              </div>
+              <div class="evaluation-score">
+                <div class="score-value">1</div>
+                <div class="score-value">/10</div>
+              </div>
+            </div>
+            <div class="evaluation-item">
+              <div class="evaluation-title">キャリアプラン</div>
+              <div class="evaluation-text">
+                texttexttexttexttexttexttexttexttexttexttexttexttexttexttexttexttext
+              </div>
+              <div class="evaluation-score">
+                <div class="score-value">10</div>
+                <div class="score-value">/10</div>
+              </div>
+            </div>
+            <div class="evaluation-item">
+              <div class="evaluation-title">企業への貢献度</div>
+              <div class="evaluation-text">
+                texttexttexttexttexttexttexttexttexttexttexttexttexttexttexttexttext
+              </div>
+              <div class="evaluation-score">
+                <div class="score-value">6</div>
+                <div class="score-value">/10</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 総評 -->
+          <div class="evaluation-section overall-evaluation">
+            <div class="overall-title">総評</div>
+            <div class="overall-text">
+              texttexttexttexttexttexttexttexttexttexttexttexttexttexttexttext
+              texttexttexttexttexttexttexttexttexttexttexttexttexttexttexttext
+              texttexttexttexttexttexttexttexttexttexttexttexttexttexttexttext
+            </div>
+          </div>
+        </section>
+      </div>
+      <!-- ページ番号 -->
+      <div class="page-number">1/5</div>
+    </div>
+  </body>
+</html>

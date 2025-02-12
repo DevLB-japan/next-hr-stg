@@ -1,22 +1,25 @@
 {
-  "name": "line-bot",
+  "name": "myproject",
   "version": "1.0.0",
-  "description": "",
+  "description": "Line Bot + Dify + RDS + PDF mail (SES)",
   "main": "server.js",
-  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.310.0",
     "@line/bot-sdk": "^9.5.0",
-    "axios": "^1.7.9",
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.4.0",
     "express": "^4.21.2",
-    "firebase-admin": "^13.0.2",
-    "node-fetch": "^3.3.2"
+    "handlebars": "^4.7.7",
+    "nanoid": "^4.0.0",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.10.0",
+    "puppeteer": "^20.8.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^4.0.5"
   }
 }
