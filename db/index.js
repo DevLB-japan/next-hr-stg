@@ -1,11 +1,7 @@
-///////////////////////////////////////////
-// db/index.js
-///////////////////////////////////////////
+import { Pool } from "pg";
 import dotenv from "dotenv";
-dotenv.config();
 
-import pkg from "pg";
-const { Pool } = pkg;
+dotenv.config();
 
 const pool = new Pool({
   host: process.env.DB_HOST,
