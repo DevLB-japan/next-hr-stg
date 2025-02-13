@@ -1,17 +1,25 @@
 ////////////////////////////////////////////////////
-// lineWebhookController.js (例)
+// controllers/lineWebhookController.js
 ////////////////////////////////////////////////////
+import { Client } from "@line/bot-sdk";
+import fetch from "node-fetch";
+import dotenv from "dotenv";
+
+// DB Access
+import { getLineApiKeyByChannelId } from "../db/lineApiKeys.js";
 import {
   getOrCreateLineUser,
   updateLineUserConversation,
 } from "../db/lineUsers.js";
-import { getLineApiKeyByChannelId } from "../db/lineApiKeys.js";
-import fetch from "node-fetch";
+
+dotenv.config();
+
+// メモリで destination -> Clientインスタンス をキャッシュ
+const lineClientMap = {};
 
 export async function handleLineWebhook(req, res) {
   try {
-    const destination = req.body.destination;
-    const events = req.body.events;
+    const { destination, events } = req.body;
 
     console.log(
       "[handleLineWebhook] destination=",
@@ -20,12 +28,13 @@ export async function handleLineWebhook(req, res) {
       JSON.stringify(events)
     );
 
+    // イベントが無ければ200で終わり
     if (!events || events.length === 0) {
       console.log("[handleLineWebhook] No events => 200 OK");
       return res.status(200).send("No events found.");
     }
 
-    // DBで lineApiKeyRow を取得
+    // DBで line_api_key を取得
     const lineApiKeyRow = await getLineApiKeyByChannelId(destination);
     if (!lineApiKeyRow) {
       console.log(
@@ -34,10 +43,24 @@ export async function handleLineWebhook(req, res) {
       );
       return res
         .status(400)
-        .send("No lineApiKeys found for destination=" + destination);
+        .send("No lineApiKey for destination=" + destination);
     }
 
-    // Loop events
+    // clientインスタンスをキャッシュから取得 or 新規作成
+    let client = lineClientMap[destination];
+    if (!client) {
+      console.log(
+        "[handleLineWebhook] Creating new Client for destination=",
+        destination
+      );
+      client = new Client({
+        channelAccessToken: lineApiKeyRow.line_channel_access_token,
+        channelSecret: lineApiKeyRow.line_channel_secret,
+      });
+      lineClientMap[destination] = client;
+    }
+
+    // 複数イベントを処理
     for (const event of events) {
       console.log(
         "[handleLineWebhook] eventType=",
@@ -46,7 +69,7 @@ export async function handleLineWebhook(req, res) {
         event.message?.type
       );
 
-      // 1) もし message.text の場合のみ処理
+      // ここでは メッセージ + テキスト以外はスキップする例
       if (event.type === "message" && event.message.type === "text") {
         const userMessage = event.message.text;
         const userId = event.source.userId;
@@ -58,16 +81,17 @@ export async function handleLineWebhook(req, res) {
           userMessage
         );
 
-        // 2) getOrCreate line user
+        // DB上の line_users を getOrCreate
         const lineUserRow = await getOrCreateLineUser(
           lineApiKeyRow.company_id,
           userId
         );
         console.log("[handleLineWebhook] lineUserRow=", lineUserRow);
 
+        // conversation_idを取得
         const conversationId = lineUserRow.conversation_id;
 
-        // 3) Call Dify
+        // Dify API 呼び出し
         const requestBody = {
           inputs: {},
           query: userMessage,
@@ -89,23 +113,22 @@ export async function handleLineWebhook(req, res) {
           body: JSON.stringify(requestBody),
         });
 
-        // Check response
         if (!difyResponse.ok) {
-          const errText = await difyResponse.text();
+          const errorText = await difyResponse.text();
           console.error(
-            "[handleLineWebhook] Dify API Error. status=",
+            "[handleLineWebhook] Dify API error. status=",
             difyResponse.status,
             "body=",
-            errText
+            errorText
           );
-          // You can decide to reply a fallback message or just skip
+          // 失敗時はログのみでスキップする例
           continue;
         }
 
         const difyData = await difyResponse.json();
         console.log("[handleLineWebhook] difyData=", difyData);
 
-        // 4) if new conversation_id => update DB
+        // もし会話IDが無く、Difyから新たにconversation_idが返ってきたら更新
         if (!conversationId && difyData.conversation_id) {
           await updateLineUserConversation(
             lineUserRow.line_user_id,
@@ -117,18 +140,16 @@ export async function handleLineWebhook(req, res) {
           );
         }
 
-        // 5) Reply to user
-        await lineApiKeyRow.client.replyMessage(event.replyToken, {
+        // LINE返信
+        await client.replyMessage(event.replyToken, {
           type: "text",
           text: difyData.answer || "Dify error or no answer",
         });
 
-        console.log("[handleLineWebhook] reply done.");
+        console.log("[handleLineWebhook] Replied to user.");
       } else {
-        // 何もしない(ログだけ)
-        console.log(
-          "[handleLineWebhook] Skip event, not text message or not message type"
-        );
+        // それ以外のイベントはログのみ
+        console.log("[handleLineWebhook] Skip non-text event.");
       }
     }
 
