@@ -1,7 +1,12 @@
-import { Pool } from "pg";
-import dotenv from "dotenv";
+////////////////////////////////////////////////////
+// db/index.js
+////////////////////////////////////////////////////
 
+import dotenv from "dotenv";
 dotenv.config();
+
+import pkg from "pg";
+const { Pool } = pkg; // ★ ここがポイント
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -9,6 +14,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
+  // ssl: { rejectUnauthorized: false } // if needed
 });
 
 export default pool;
