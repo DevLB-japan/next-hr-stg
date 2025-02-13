@@ -1,12 +1,11 @@
 ////////////////////////////////////////////////////
 // db/index.js
 ////////////////////////////////////////////////////
-
 import dotenv from "dotenv";
 dotenv.config();
 
 import pkg from "pg";
-const { Pool } = pkg; // ★ ここがポイント
+const { Pool } = pkg; // ← CommonJSモジュール 'pg' から Pool を取得
 
 const pool = new Pool({
   host: process.env.DB_HOST,
