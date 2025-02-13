@@ -1,6 +1,7 @@
 {
   "name": "myproject",
   "version": "1.0.0",
+  "type": "module",
   "description": "Line Bot + Dify + RDS + PDF mail (SES)",
   "main": "server.js",
   "scripts": {
