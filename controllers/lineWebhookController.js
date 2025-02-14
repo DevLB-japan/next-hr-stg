@@ -86,7 +86,7 @@ export async function handleLineWebhook(req, res) {
 
         // 4) fetch with 10sec timeout
         const controller = new AbortController();
-        const timerId = setTimeout(() => controller.abort(), 10000);
+        const timerId = setTimeout(() => controller.abort(), 120000);
 
         let difyData;
         try {
