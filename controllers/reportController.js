@@ -2,8 +2,8 @@
 // controllers/reportController.js
 ////////////////////////////////////////////////////
 import fs from "fs";
-import path from "path";
-import Handlebars from "handlebars";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import { nanoid } from "nanoid";
 
 import { generatePdfFromHtml } from "../services/pdfGenerator.js";
@@ -14,99 +14,87 @@ import { getCompanyById } from "../db/companies.js";
 import { sendMailWithSes } from "../services/sendMail.js";
 
 /**
+ * ESM環境で __dirname 相当を使うための設定
+ */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/**
  * POST /report/create
  *
- * Expecting JSON with a structure like:
- * {
- *   "conversation_id": "...",        // Dify's conversation_id
- *   "basic_info": {...},
- *   "ai_questions": {...},
- *   "match_analysis": {...},
- *   "personality_analysis": {...},
- *   "recommended_actions": {...}
- * }
+ * 1) まず conversation_id などで lineUser/Company を特定
+ * 2) templates/report1.html ~ report5.html の5つを読み込み
+ * 3) HTMLを結合（ページ区切り）→ 1つのPDFに変換
+ * 4) S3にアップし、メール送信
  */
 export async function createReportController(req, res) {
   try {
-    // 1) retrieve conversation_id from the request body
-    const {
-      conversation_id,
-      basic_info,
-      ai_questions,
-      match_analysis,
-      personality_analysis,
-      recommended_actions,
-    } = req.body;
-
-    // must have conversation_id
+    // 例: conversation_id で lineUser を探す実装（必要に応じて修正）
+    const { conversation_id } = req.body;
     if (!conversation_id) {
       return res.status(400).json({ error: "No conversation_id provided" });
     }
 
-    // 2) find lineUser by conversation_id
+    // 1) DB検索: lineUser
     const lineUser = await getLineUserByConversation(conversation_id);
     if (!lineUser) {
-      return res
-        .status(400)
-        .json({ error: "No lineUser found for the given conversation_id" });
+      return res.status(400).json({
+        error: `No lineUser found for conversation_id=${conversation_id}`,
+      });
     }
 
-    // 3) find company
+    // 2) 企業取得
     const company = await getCompanyById(lineUser.company_id);
     if (!company) {
-      return res
-        .status(400)
-        .json({ error: "No company found for that lineUser" });
+      return res.status(400).json({
+        error: "No company found for that lineUser",
+      });
     }
 
-    // 4) read template (reportTemplate.html)
-    const templatePath = path.join(
-      process.cwd(),
-      "templates",
-      "reportTemplate.html"
-    );
-    const templateSrc = fs.readFileSync(templatePath, "utf-8");
-    const template = Handlebars.compile(templateSrc);
+    // 3) 5つのHTMLを順番に読み込み & 結合
+    //    それぞれの間に <div style="page-break-before: always;"></div> で改ページ
+    const htmlParts = [];
+    for (let i = 1; i <= 5; i++) {
+      const filePath = join(__dirname, `../templates/report${i}.html`);
+      console.log(`[createReportController] Reading: ${filePath}`);
+      // ファイル存在しない場合はENOENT → 要注意
+      const fileSrc = fs.readFileSync(filePath, "utf-8");
+      htmlParts.push(fileSrc);
 
-    // build HTML content
-    const htmlContext = {
-      basic_info,
-      ai_questions,
-      match_analysis,
-      personality_analysis,
-      recommended_actions,
-    };
-    const htmlString = template(htmlContext);
+      // 4ファイルの後には page-break、最後には不要
+      if (i < 5) {
+        htmlParts.push('<div style="page-break-before: always;"></div>');
+      }
+    }
 
-    // 5) generate PDF from HTML
-    const pdfBuffer = await generatePdfFromHtml(htmlString); // e.g. using puppeteer
+    // 結合
+    const combinedHtml = htmlParts.join("\n");
 
-    // 6) upload PDF to S3
+    // 4) PDF生成
+    //    generatePdfFromHtml は puppeteer等でHTML→PDF (A4ページ)
+    const pdfBuffer = await generatePdfFromHtml(combinedHtml);
+
+    // 5) S3にアップロード
     const reportId = nanoid(18);
     const pdfKey = `reports/${reportId}.pdf`;
     await uploadPdfToS3(pdfBuffer, pdfKey);
 
-    // 7) create a new record in reports table
+    // 6) DBに reports レコード生成
+    //    ここでは req.body 全体を report_json に格納例
     const newReport = await createReport({
       company_id: lineUser.company_id,
       line_user_id: lineUser.line_user_id,
-      report_json: {
-        basic_info,
-        ai_questions,
-        match_analysis,
-        personality_analysis,
-        recommended_actions,
-      },
+      report_json: req.body,
       s3_path: pdfKey,
-      remarks: "Report created using conversation_id",
+      remarks: "Combined 5 HTML into 1 PDF",
     });
 
-    // 8) send mail if company.email_address is present
+    // 7) メール送信 (PDF添付)
     if (company.email_address) {
-      const htmlBody = "<p>レポートを添付いたします。</p>";
+      const htmlBody = "<p>5つのHTMLを結合したレポートを添付します。</p>";
       await sendMailWithSes({
         to: company.email_address,
-        subject: "レポート作成完了",
+        subject: "複数レポートPDF送付",
         htmlBody,
         pdfBuffer,
       });
@@ -116,16 +104,19 @@ export async function createReportController(req, res) {
       );
     } else {
       console.warn(
-        `[createReportController] Company ${company.company_id} has no email_address, skip mail.`
+        `[createReportController] Company ${company.company_id} has no email_address`
       );
     }
 
     return res.status(200).json({
-      message: "Report created, PDF stored in S3, and mail sent",
+      message:
+        "Report created from 5 HTML files, PDF stored in S3, and mail sent",
       report: newReport,
     });
   } catch (err) {
     console.error("Error in createReportController:", err);
-    return res.status(500).json({ error: "Failed to create report" });
+    return res
+      .status(500)
+      .json({ error: "Failed to create multi-page PDF report" });
   }
 }
