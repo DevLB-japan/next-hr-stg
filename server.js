@@ -43,5 +43,5 @@ const server = app.listen(PORT, () => {
 });
 
 // keep-alive (ALBのidleTimeoutに合わせる)
-server.keepAliveTimeout = 65000; // 65秒
-server.headersTimeout = 66000; // 66秒
+server.keepAliveTimeout = 125000;
+server.headersTimeout = 130000; //
