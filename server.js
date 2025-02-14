@@ -1,39 +1,47 @@
-////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
 // server.js
-////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
 import express from "express";
 import dotenv from "dotenv";
-// ルータ類
+import { globalErrorHandler } from "./middleware/globalErrorHandler.js";
 import webhookRouter from "./routes/webhook.js";
-import reportRouter from "./routes/report.js";
 
 dotenv.config();
+
 const app = express();
 
-app.use(express.json({ limit: "5mb" })); // JSONパーサ設定
+/**
+ * JSONパース設定:
+ * - limitを大きめ (2mb 等)
+ * - strict: false で多少の不正も受容 (改行など)
+ */
+app.use(express.json({ limit: "2mb", strict: false }));
 
-// ヘルスチェック用エンドポイント
-app.get("/healthz", (req, res) => {
-  res.status(200).send("OK");
+// ALB がよく GET / とかヘルスチェックする -> 返答だけする
+app.get("/", (req, res) => {
+  res.status(200).send("OK from root path");
 });
 
-// LINE 用 webhook
+// Health check endpoint
+app.get("/healthz", (req, res) => {
+  res.status(200).send("healthy");
+});
+
+// Webhookルート
 app.use("/webhook", webhookRouter);
 
-// Dify 用 report
-app.use("/report", reportRouter);
+// 何かのテストでreport関連呼び出すなら
+// import reportRouter from "./routes/report.js";
+// app.use("/report", reportRouter);
 
-// 全体エラー捕捉(簡易)
-app.use((err, req, res, next) => {
-  console.error("[GlobalErrorHandler]", err);
-  return res.status(500).send("Internal Server Error");
-});
+// グローバルエラーハンドラ (最後に)
+app.use(globalErrorHandler);
 
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// Keep-Alive 対応: ALBの idle timeout(60秒) より長めに
-server.keepAliveTimeout = 65000;
-server.headersTimeout = 66000;
+// keep-alive (ALBのidleTimeoutに合わせる)
+server.keepAliveTimeout = 65000; // 65秒
+server.headersTimeout = 66000; // 66秒
