@@ -1,12 +1,26 @@
 ////////////////////////////////////////////////////
-// /db/lineUsers.js
+// db/lineUsers.js
 ////////////////////////////////////////////////////
 import pool from "./index.js";
 import { nanoid } from "nanoid";
 
 /**
- * GET or CREATE line_users row by (company_id, user_id)
- * user_id = 実際のLINE userId
+ * DB: line_users
+ *
+ * Assumes table structure something like:
+ *  line_users(
+ *    line_user_id char(18) PK,
+ *    company_id   char(18),
+ *    user_id      text,            // actual LINE userId
+ *    conversation_id text,         // Dify conversationId
+ *    remarks text,
+ *    created_at timestamp,
+ *    updated_at timestamp
+ *  )
+ */
+
+/**
+ * GET or CREATE line_user by (company_id, user_id)
  */
 export async function getOrCreateLineUser(companyId, userId) {
   let row = await getLineUserByCompanyAndUserId(companyId, userId);
@@ -38,10 +52,10 @@ export async function getLineUserByCompanyAndUserId(companyId, userId) {
 }
 
 /**
- * CREATE a new line_users record with random line_user_id (CHAR(18))
+ * CREATE a new line_users record
  */
 export async function createLineUser(companyId, userId, remarks = "") {
-  const lineUserId = nanoid(18); // PK in line_users
+  const lineUserId = nanoid(18);
   const query = `
     INSERT INTO line_users
       (line_user_id, company_id, user_id, conversation_id, remarks,
@@ -63,7 +77,6 @@ export async function createLineUser(companyId, userId, remarks = "") {
 
 /**
  * conversation_id を更新
- * (line_user_idを PK で取得)
  */
 export async function updateLineUserConversation(lineUserId, conversationId) {
   const query = `
@@ -85,20 +98,24 @@ export async function updateLineUserConversation(lineUserId, conversationId) {
 }
 
 /**
- * SELECT by line_user_id (PK)
+ * GET line_users by conversation_id
+ *
+ * Used for the scenario where Dify's conversation_id is stored in line_users.conversation_id
  */
-export async function getLineUserById(lineUserId) {
+export async function getLineUserByConversation(convId) {
   const query = `
     SELECT *
       FROM line_users
-     WHERE line_user_id = $1
+     WHERE conversation_id = $1
      LIMIT 1
   `;
+  const values = [convId];
+
   try {
-    const { rows } = await pool.query(query, [lineUserId]);
+    const { rows } = await pool.query(query, values);
     return rows[0] || null;
   } catch (err) {
-    console.error("Error in getLineUserById:", err);
+    console.error("Error in getLineUserByConversation:", err);
     throw err;
   }
 }
