@@ -19,13 +19,6 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 
 /**
- * 2) もし「生のbody」が必要な箇所があるなら
- *    そこだけ個別に raw ボディparser を使う or
- *    router.post("/someRaw", raw({type: "*/*"}), ...) などに分ける
- *    -> 今回は特に不要そうなら省略
- */
-
-/**
  * 3) 各ルートの設定
  */
 app.use("/webhook", webhookRouter);
@@ -49,7 +42,10 @@ app.use((err, req, res, next) => {
 
   // body-parser の JSON parse 失敗時
   // err.type === 'entity.parse.failed' か err.type === 'stream.not.readable'
-  if (err.type === "entity.parse.failed" || err.type === "stream.not.readable") {
+  if (
+    err.type === "entity.parse.failed" ||
+    err.type === "stream.not.readable"
+  ) {
     return res.status(400).json({ error: "Invalid JSON payload" });
   }
 
