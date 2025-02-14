@@ -1,62 +1,60 @@
-////////////////////////////////////////////////////
+///////////////////////////////////////////
 // server.js
-////////////////////////////////////////////////////
+///////////////////////////////////////////
 import express from "express";
 import dotenv from "dotenv";
-
-// ルータ
-import webhookRouter from "./routes/webhook.js"; // LINE用
-import reportRouter from "./routes/report.js"; // Difyレポート用
+import webhookRouter from "./routes/webhook.js";
+import reportRouter from "./routes/report.js";
+// もしメール用など他のルーターがあれば追記
 
 dotenv.config();
 
 const app = express();
 
 /**
- * 1) 「生のリクエストボディ」をログ出しするミドルウェア
- *    ここで body-parser の前に仕込むと、パース失敗時でも rawBody を記録可能
+ * 1) JSONパーサをグローバルに設定
+ *    （※ limitを大きめにしたい場合は { limit: "10mb" }など）
+ *    ここ以外で raw-body 等を使わないか注意
  */
-app.use((req, res, next) => {
-  let rawBody = "";
-  req.on("data", (chunk) => {
-    rawBody += chunk;
-  });
-  req.on("end", () => {
-    console.log(`[RAW] ${req.method} ${req.originalUrl}\n`, rawBody);
-    next();
-  });
+app.use(express.json({ limit: "10mb" }));
+
+/**
+ * 2) もし「生のbody」が必要な箇所があるなら
+ *    そこだけ個別に raw ボディparser を使う or
+ *    router.post("/someRaw", raw({type: "*/*"}), ...) などに分ける
+ *    -> 今回は特に不要そうなら省略
+ */
+
+/**
+ * 3) 各ルートの設定
+ */
+app.use("/webhook", webhookRouter);
+// 例: Dify からのレポート用
+app.use("/report", reportRouter);
+// もし他にも /mail などあればまとめる
+
+/**
+ * 4) テスト用のルート(ヘルスチェック等)
+ */
+app.get("/", (req, res) => {
+  res.status(200).send("OK from root path");
 });
 
 /**
- * 2) JSONパーサ
- *    - limit: 2mb  : 大きめのJSONも許可
- *    - strict: false : 改行や特殊文字を寛容に扱う
- */
-app.use(express.json({ limit: "2mb", strict: false }));
-
-/**
- * 3) グローバルエラーハンドラ
- *    - JSON parse失敗などでエラーがあった場合もログ
+ * 5) グローバルエラーハンドリング（オプション）
+ *    stream.not.readable や JSON parse error をキャッチ
  */
 app.use((err, req, res, next) => {
   console.error("[GlobalErrorHandler] error:", err);
-  if (err.type === "entity.parse.failed") {
-    return res.status(400).json({ error: "Invalid JSON or parse error" });
+
+  // body-parser の JSON parse 失敗時
+  // err.type === 'entity.parse.failed' か err.type === 'stream.not.readable'
+  if (err.type === "entity.parse.failed" || err.type === "stream.not.readable") {
+    return res.status(400).json({ error: "Invalid JSON payload" });
   }
-  return res.status(500).json({ error: "Server error" });
-});
 
-/**
- * 4) ルーティング
- */
-app.use("/webhook", webhookRouter);
-app.use("/report", reportRouter);
-
-/**
- * 5) ヘルスチェックなど
- */
-app.get("/", (req, res) => {
-  res.send("OK from root path");
+  // その他のエラーを一括でInternalServerError扱い
+  return res.status(500).json({ error: "Internal Server Error" });
 });
 
 /**
