@@ -12,7 +12,7 @@ dotenv.config();
  * @param {Buffer} [pdfBuffer]
  */
 export async function sendMailWithSes({ to, subject, htmlBody, pdfBuffer }) {
-  const from = process.env.SES_FROM_ADDRESS || "noreply@example.com";
+  const from = process.env.SES_FROM_ADDRESS || "noreply@nexthr.jp";
   const boundary = "NextPart_Boundary";
 
   let rawMessage;
