@@ -1,15 +1,18 @@
 //////////////////////////////////////////////////////////
-// lineWebhookController.js (例)
+// lineWebhookController.js
 //////////////////////////////////////////////////////////
 import fetch from "node-fetch";
 import { Client } from "@line/bot-sdk";
 import { getLineApiKeyByChannelId } from "../db/lineApiKeys.js";
-import { getOrCreateLineUser } from "../db/lineUsers.js";
+import {
+  getOrCreateLineUser,
+  updateLineUserConversation,
+} from "../db/lineUsers.js";
 
 /**
- * handleLineWebhook
- *   1) 2秒以内にレスポンスを返す -> res.status(200).end()
- *   2) 非同期で重い処理 (Dify呼び出し等) → pushMessage でユーザへ返信
+ * handleLineWebhook:
+ *  1) 受け取ったら即座に res.status(200).end()
+ *  2) 非同期タスクで Dify呼び出し → conversation_id更新 → pushMessage
  */
 export async function handleLineWebhook(req, res) {
   try {
@@ -21,7 +24,7 @@ export async function handleLineWebhook(req, res) {
       return res.status(200).send("No events");
     }
 
-    // DB: line_api_keys
+    // 1) DB: line_api_keys (destination => channel_id)
     let lineApiKeyRow = null;
     if (destination) {
       lineApiKeyRow = await getLineApiKeyByChannelId(destination);
@@ -30,18 +33,17 @@ export async function handleLineWebhook(req, res) {
       console.warn(
         `[handleLineWebhook] No lineApiKeys found for destination=${destination}`
       );
-      // すぐ終了
       return res.status(200).send("No lineApiKeys found");
     }
 
-    // 2秒以内に返すため: 先に 200 OK を返却
-    // => ここで応答したら、LINE はタイムアウトしなくなる
+    // 2秒以内に返すため、先に 200 OK
     res.status(200).end();
 
-    // あとはバックグラウンドでイベントを処理 (setImmediateやqueue)
+    // 非同期でイベントを処理
     for (const event of events) {
+      // テキストメッセージのみ処理
       if (event.type === "message" && event.message.type === "text") {
-        // バックグラウンドで処理する
+        // BG タスクとして処理を委譲
         processLineTextEvent(lineApiKeyRow, event).catch((err) => {
           console.error("[handleLineWebhook] BG error:", err);
         });
@@ -55,94 +57,110 @@ export async function handleLineWebhook(req, res) {
     }
   } catch (err) {
     console.error("[handleLineWebhook] error:", err);
-    // とりあえず200で返す
+    // LINE的には200でOK (エラー時も再送し過ぎないように)
     return res.status(200).end();
   }
 }
 
 /**
- * 非同期で実行する重い処理をまとめた関数 (例)
+ * 非同期で重い処理を行う関数:
+ *  1) DBから line_user を取得 or 作成
+ *  2) Dify呼び出し (会話継続には conversation_id が必須)
+ *  3) DBに conversation_id を更新
+ *  4) pushMessage でユーザへ回答送信
  */
 async function processLineTextEvent(lineApiKeyRow, event) {
-  console.log("[processLineTextEvent] BG start event=", event.type);
-
-  // 1) LINE Client
-  const lineClient = new Client({
-    channelAccessToken: lineApiKeyRow.line_channel_access_token,
-    channelSecret: lineApiKeyRow.line_channel_secret,
-  });
-
-  const userId = event.source.userId;
-  const userMessage = event.message.text;
-
-  // 2) DB: line_users
-  const lineUserRow = await getOrCreateLineUser(
-    lineApiKeyRow.company_id,
-    userId
-  );
-  console.log("[processLineTextEvent] lineUserRow=", lineUserRow);
-
-  // 3) (重い処理例) Dify呼び出し
-  //    ここで10秒とかかかる可能性があるなら、
-  //    2秒以内に返すのは不可能 → pushMessageで完了通知
-  const requestBody = {
-    inputs: {},
-    query: userMessage,
-    response_mode: "blocking",
-    user: "line-bot",
-  };
-  if (lineUserRow.conversation_id) {
-    requestBody.conversation_id = lineUserRow.conversation_id;
-  }
-
-  let difyData = null;
   try {
-    const response = await fetch(lineApiKeyRow.dify_api_url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${lineApiKeyRow.dify_api_key}`,
-      },
-      body: JSON.stringify(requestBody),
+    const lineClient = new Client({
+      channelAccessToken: lineApiKeyRow.line_channel_access_token,
+      channelSecret: lineApiKeyRow.line_channel_secret,
     });
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(
-        "[processLineTextEvent] Dify error. status=",
-        response.status,
-        errText
-      );
-      difyData = { answer: "Difyでエラーが発生しました。" };
-    } else {
-      difyData = await response.json();
+
+    const userId = event.source.userId;
+    const userMessage = event.message.text;
+
+    console.log(
+      "[processLineTextEvent] userId=",
+      userId,
+      "message=",
+      userMessage
+    );
+
+    // 1) DB: line_users
+    const lineUserRow = await getOrCreateLineUser(
+      lineApiKeyRow.company_id,
+      userId
+    );
+    console.log("[processLineTextEvent] lineUserRow=", lineUserRow);
+
+    // 2) Dify呼び出し
+    const requestBody = {
+      inputs: {},
+      query: userMessage,
+      response_mode: "blocking",
+      user: "line-bot",
+    };
+    if (lineUserRow.conversation_id) {
+      requestBody.conversation_id = lineUserRow.conversation_id;
     }
+
+    let difyData = null;
+    try {
+      const response = await fetch(lineApiKeyRow.dify_api_url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${lineApiKeyRow.dify_api_key}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(
+          "[processLineTextEvent] Dify error. status=",
+          response.status,
+          errText
+        );
+        difyData = { answer: "Difyでエラーが発生しました。" };
+      } else {
+        difyData = await response.json();
+      }
+    } catch (fetchErr) {
+      console.error("[processLineTextEvent] Dify fetch error:", fetchErr);
+      difyData = { answer: "Difyへの接続でエラーが起きました。" };
+    }
+
+    // 3) DBに conversation_id を更新
+    if (
+      difyData?.conversation_id &&
+      difyData.conversation_id !== lineUserRow.conversation_id
+    ) {
+      console.log(
+        `[processLineTextEvent] Updating conversation_id => ${difyData.conversation_id}`
+      );
+      await updateLineUserConversation(
+        lineUserRow.line_user_id,
+        difyData.conversation_id
+      );
+    }
+
+    // 4) pushMessageでユーザに回答送信
+    const answerText = difyData?.answer || "No answer from Dify. (push)";
+    console.log(
+      "[processLineTextEvent] pushMessage userId=",
+      userId,
+      " =>",
+      answerText
+    );
+
+    await lineClient.pushMessage(userId, {
+      type: "text",
+      text: answerText,
+    });
+
+    console.log("[processLineTextEvent] done");
   } catch (err) {
-    console.error("[processLineTextEvent] Dify fetch error:", err);
-    difyData = { answer: "Difyへの接続がタイムアウトしました。" };
+    // ここでのエラーはログに出して終わり
+    console.error("[processLineTextEvent] Unexpected error:", err);
   }
-
-  // 4) line_user の conversation_id 更新
-  if (
-    difyData?.conversation_id &&
-    difyData.conversation_id !== lineUserRow.conversation_id
-  ) {
-    // your update function
-    // await updateLineUserConversation(...);
-  }
-
-  // 5) pushMessage でユーザへ送信 (replyTokenは使えない → 2秒経過している可能性が高い)
-  const answerText = difyData?.answer || "No answer from Dify. (非同期処理)";
-  console.log(
-    "[processLineTextEvent] pushing answer to userId=",
-    userId,
-    " text=",
-    answerText
-  );
-
-  await lineClient.pushMessage(userId, {
-    type: "text",
-    text: answerText,
-  });
-
-  console.log("[processLineTextEvent] BG done.");
 }
