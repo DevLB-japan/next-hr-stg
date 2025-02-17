@@ -1,25 +1,22 @@
-//////////////////////////////////////////////////////////
-// routes/webhook.js
-//////////////////////////////////////////////////////////
 import express from "express";
 import { handleLineWebhook } from "../controllers/lineWebhookController.js";
 
 const router = express.Router();
 
-/**
- * LINE公式のWebhook URL:
- *   POST /webhook
- *   - イベントが無ければOKを返す
- *   - Verify用に GET /webhook が飛んでくるケースもある
- */
-
-// [A] GET /webhook → Verify用 (200返す)
+// GET /webhook for verification
 router.get("/", (req, res) => {
-  console.log("[WebhookRouter] GET /webhook => Just 200 OK for verification");
-  return res.status(200).send("OK (GET /webhook verified)");
+  console.log("[WebhookRouter] GET /webhook => 200 OK");
+  res.status(200).send("OK (GET /webhook verified)");
 });
 
-// [B] POST /webhook → LINE Messaging API
-router.post("/", handleLineWebhook);
+// POST /webhook
+router.post("/", async (req, res) => {
+  // 1) まずは即座に200を返す
+  res.status(200).send("OK");
+  // 2) この後、非同期で処理
+  handleLineWebhook(req.body).catch((err) => {
+    console.error("[webhookRouter] handleLineWebhook error:", err);
+  });
+});
 
 export default router;
