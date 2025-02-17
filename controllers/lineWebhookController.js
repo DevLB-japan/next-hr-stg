@@ -1,22 +1,15 @@
-/////////////////////////////////////////////////////////////
-// controllers/lineWebhookController.js
-/////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+// lineWebhookController.js (例)
+//////////////////////////////////////////////////////////
 import fetch from "node-fetch";
-import { AbortController } from "abort-controller";
 import { Client } from "@line/bot-sdk";
-
 import { getLineApiKeyByChannelId } from "../db/lineApiKeys.js";
-import {
-  getOrCreateLineUser,
-  updateLineUserConversation,
-} from "../db/lineUsers.js";
+import { getOrCreateLineUser } from "../db/lineUsers.js";
 
 /**
- * handleLineWebhook:
- *   - Receives LINE events
- *   - Calls Dify with the existing or new conversation_id
- *   - Updates DB with the latest conversation_id
- *   - Replies to user
+ * handleLineWebhook
+ *   1) 2秒以内にレスポンスを返す -> res.status(200).end()
+ *   2) 非同期で重い処理 (Dify呼び出し等) → pushMessage でユーザへ返信
  */
 export async function handleLineWebhook(req, res) {
   try {
@@ -28,7 +21,7 @@ export async function handleLineWebhook(req, res) {
       return res.status(200).send("No events");
     }
 
-    // 1) DB: line_api_keys  (destination => channel_id)
+    // DB: line_api_keys
     let lineApiKeyRow = null;
     if (destination) {
       lineApiKeyRow = await getLineApiKeyByChannelId(destination);
@@ -37,125 +30,22 @@ export async function handleLineWebhook(req, res) {
       console.warn(
         `[handleLineWebhook] No lineApiKeys found for destination=${destination}`
       );
-      // 200 で終了: LINE には失敗を返したくない
+      // すぐ終了
       return res.status(200).send("No lineApiKeys found");
     }
 
-    // 2) create LINE client
-    const lineClient = new Client({
-      channelAccessToken: lineApiKeyRow.line_channel_access_token,
-      channelSecret: lineApiKeyRow.line_channel_secret,
-    });
+    // 2秒以内に返すため: 先に 200 OK を返却
+    // => ここで応答したら、LINE はタイムアウトしなくなる
+    res.status(200).end();
 
-    // 3) process events
+    // あとはバックグラウンドでイベントを処理 (setImmediateやqueue)
     for (const event of events) {
-      console.log(
-        "[handleLineWebhook] eventType=",
-        event.type,
-        "messageType=",
-        event?.message?.type
-      );
-
       if (event.type === "message" && event.message.type === "text") {
-        const userId = event.source.userId;
-        const userMessage = event.message.text;
-        console.log(
-          "[handleLineWebhook] userId=",
-          userId,
-          " userMessage=",
-          userMessage
-        );
-
-        // line_users
-        const lineUserRow = await getOrCreateLineUser(
-          lineApiKeyRow.company_id,
-          userId
-        );
-        console.log("[handleLineWebhook] lineUserRow=", lineUserRow);
-
-        // prepare request to Dify
-        const requestBody = {
-          inputs: {},
-          query: userMessage,
-          response_mode: "blocking",
-          user: "line-bot",
-        };
-        if (lineUserRow.conversation_id) {
-          requestBody.conversation_id = lineUserRow.conversation_id;
-        }
-
-        // 4) fetch with 10sec timeout
-        const controller = new AbortController();
-        const timerId = setTimeout(() => controller.abort(), 120000);
-
-        let difyData;
-        try {
-          const response = await fetch(lineApiKeyRow.dify_api_url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${lineApiKeyRow.dify_api_key}`,
-            },
-            body: JSON.stringify(requestBody),
-            signal: controller.signal,
-          });
-          if (!response.ok) {
-            const errText = await response.text();
-            console.error(
-              `[handleLineWebhook] Dify error: status=${response.status}, body=${errText}`
-            );
-            // skip or reply error
-            await lineClient.replyMessage(event.replyToken, {
-              type: "text",
-              text: "Difyでエラーが発生しました。しばらくお待ちください。",
-            });
-            continue;
-          }
-          difyData = await response.json();
-        } catch (err) {
-          if (err.name === "AbortError") {
-            console.error("[handleLineWebhook] Dify fetch timed out");
-            await lineClient.replyMessage(event.replyToken, {
-              type: "text",
-              text: "Difyへの接続がタイムアウトしました。再度お試しください。",
-            });
-          } else {
-            console.error("[handleLineWebhook] Unexpected fetch error:", err);
-            await lineClient.replyMessage(event.replyToken, {
-              type: "text",
-              text: "Dify連携時にエラーが発生しました。",
-            });
-          }
-          continue;
-        } finally {
-          clearTimeout(timerId);
-        }
-
-        console.log("[handleLineWebhook] difyData=", difyData);
-
-        // 5) update conversation_id always if difyData has it
-        if (difyData?.conversation_id) {
-          // ここでは毎回上書きしておく
-          if (difyData.conversation_id !== lineUserRow.conversation_id) {
-            console.log(
-              `[handleLineWebhook] Updating conversation_id from '${lineUserRow.conversation_id}' -> '${difyData.conversation_id}'`
-            );
-            await updateLineUserConversation(
-              lineUserRow.line_user_id,
-              difyData.conversation_id
-            );
-          }
-        }
-
-        // 6) reply to user
-        const answer = difyData?.answer || "No answer from Dify.";
-        await lineClient.replyMessage(event.replyToken, {
-          type: "text",
-          text: answer,
+        // バックグラウンドで処理する
+        processLineTextEvent(lineApiKeyRow, event).catch((err) => {
+          console.error("[handleLineWebhook] BG error:", err);
         });
-        console.log("[handleLineWebhook] Replied to user.");
       } else {
-        // skip non-text
         console.log(
           "[handleLineWebhook] skip event=",
           event.type,
@@ -163,11 +53,96 @@ export async function handleLineWebhook(req, res) {
         );
       }
     }
-
-    return res.status(200).send("OK");
   } catch (err) {
     console.error("[handleLineWebhook] error:", err);
-    // return 200 to avoid massive retries from LINE
-    return res.status(200).send("Error handled");
+    // とりあえず200で返す
+    return res.status(200).end();
   }
+}
+
+/**
+ * 非同期で実行する重い処理をまとめた関数 (例)
+ */
+async function processLineTextEvent(lineApiKeyRow, event) {
+  console.log("[processLineTextEvent] BG start event=", event.type);
+
+  // 1) LINE Client
+  const lineClient = new Client({
+    channelAccessToken: lineApiKeyRow.line_channel_access_token,
+    channelSecret: lineApiKeyRow.line_channel_secret,
+  });
+
+  const userId = event.source.userId;
+  const userMessage = event.message.text;
+
+  // 2) DB: line_users
+  const lineUserRow = await getOrCreateLineUser(
+    lineApiKeyRow.company_id,
+    userId
+  );
+  console.log("[processLineTextEvent] lineUserRow=", lineUserRow);
+
+  // 3) (重い処理例) Dify呼び出し
+  //    ここで10秒とかかかる可能性があるなら、
+  //    2秒以内に返すのは不可能 → pushMessageで完了通知
+  const requestBody = {
+    inputs: {},
+    query: userMessage,
+    response_mode: "blocking",
+    user: "line-bot",
+  };
+  if (lineUserRow.conversation_id) {
+    requestBody.conversation_id = lineUserRow.conversation_id;
+  }
+
+  let difyData = null;
+  try {
+    const response = await fetch(lineApiKeyRow.dify_api_url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${lineApiKeyRow.dify_api_key}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(
+        "[processLineTextEvent] Dify error. status=",
+        response.status,
+        errText
+      );
+      difyData = { answer: "Difyでエラーが発生しました。" };
+    } else {
+      difyData = await response.json();
+    }
+  } catch (err) {
+    console.error("[processLineTextEvent] Dify fetch error:", err);
+    difyData = { answer: "Difyへの接続がタイムアウトしました。" };
+  }
+
+  // 4) line_user の conversation_id 更新
+  if (
+    difyData?.conversation_id &&
+    difyData.conversation_id !== lineUserRow.conversation_id
+  ) {
+    // your update function
+    // await updateLineUserConversation(...);
+  }
+
+  // 5) pushMessage でユーザへ送信 (replyTokenは使えない → 2秒経過している可能性が高い)
+  const answerText = difyData?.answer || "No answer from Dify. (非同期処理)";
+  console.log(
+    "[processLineTextEvent] pushing answer to userId=",
+    userId,
+    " text=",
+    answerText
+  );
+
+  await lineClient.pushMessage(userId, {
+    type: "text",
+    text: answerText,
+  });
+
+  console.log("[processLineTextEvent] BG done.");
 }
