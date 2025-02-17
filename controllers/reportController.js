@@ -6,9 +6,8 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { nanoid } from "nanoid";
 
-// 例: Puppeteer, S3 upload, DB ops, sendMail
 import { generatePdfFromHtml } from "../services/pdfGenerator.js";
-import { uploadPdfToS3 } from "../services/s3Upload.js";
+import { uploadPdfToS3, ensureFolderExists } from "../services/s3Upload.js";
 import { createReport } from "../db/reports.js";
 import { getLineUserByConversation } from "../db/lineUsers.js";
 import { getCompanyById } from "../db/companies.js";
@@ -19,18 +18,13 @@ const __dirname = dirname(__filename);
 
 export async function createReportController(req, res) {
   try {
-    // !! コード上でタイムアウト判定(AbortController等)は削除 !!
-    // もしDifyから大きいペイロードが来る可能性があるなら
-    // express.json({ limit: '10mb' })などで対応
-
-    // 1) conversation_id から lineUser
+    // 1) conversation_id から lineUser を取得
     const { conversation_id } = req.body;
     if (!conversation_id) {
       console.warn("[createReportController] no conversation_id provided");
       return res.status(400).json({ error: "No conversation_id" });
     }
 
-    // 2) DB search
     const lineUser = await getLineUserByConversation(conversation_id);
     if (!lineUser) {
       console.warn(
@@ -39,16 +33,16 @@ export async function createReportController(req, res) {
       return res.status(400).json({ error: "Invalid conversation_id" });
     }
 
-    // 3) get Company
+    // 2) 企業取得
     const company = await getCompanyById(lineUser.company_id);
     if (!company) {
       console.warn(
-        `[createReportController] no company for user's company_id=${lineUser.company_id}`
+        `[createReportController] no company for company_id=${lineUser.company_id}`
       );
       return res.status(400).json({ error: "No company found" });
     }
 
-    // 4) combine 5 HTML => 1 PDF
+    // 3) 5つのHTMLを結合し PDF化
     const htmlParts = [];
     for (let i = 1; i <= 5; i++) {
       const filePath = join(__dirname, `../templates/report${i}.html`);
@@ -63,21 +57,28 @@ export async function createReportController(req, res) {
     const combinedHtml = htmlParts.join("\n");
     const pdfBuffer = await generatePdfFromHtml(combinedHtml);
 
-    // 5) S3 upload
-    const reportId = nanoid(18);
-    const pdfKey = `reports/${reportId}.pdf`;
+    // 4) 企業IDのフォルダ(プレフィックス)をチェックし、無ければ作成
+    //    （services/s3Upload.js 側で ensureFolderExists を実装）
+    const folderPrefix = `reports/${company.company_id}/`;
+    await ensureFolderExists(folderPrefix);
+
+    // 5) line_user_id.pdf という名前で PDF アップロード
+    const pdfKey = `${folderPrefix}${lineUser.line_user_id}.pdf`;
+    console.log("[createReportController] pdfKey =", pdfKey);
     await uploadPdfToS3(pdfBuffer, pdfKey);
 
-    // 6) DB: create report
+    // 6) DBレコードを作成
+    const reportId = nanoid(18); // 既存の仕様通り、DB上で一意IDを利用する
     const newReport = await createReport({
       company_id: lineUser.company_id,
       line_user_id: lineUser.line_user_id,
       report_json: req.body,
       s3_path: pdfKey,
       remarks: "multi-page PDF from 5 HTML",
+      // DB に reportId を入れたいなら: report_id: reportId,
     });
 
-    // 7) Mail (if needed)
+    // 7) 企業にメール送信 (ある場合)
     if (company.email_address) {
       await sendMailWithSes({
         to: company.email_address,
