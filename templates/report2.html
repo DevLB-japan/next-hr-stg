@@ -1,140 +1,392 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Page2</title>
-    <style>
-      @page {
-        size: A4;
-        margin: 20mm;
-      }
-      body {
-        background-color: #ffffff;
-        font-family: sans-serif;
-        margin: 0;
-        padding: 0;
-      }
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="./report1.css" />
+    <link rel="stylesheet" href="./report2.css" />
 
-      h1 {
-        font-size: 24px;
-        font-weight: bold;
-        margin-bottom: 1rem;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 1rem;
-      }
-      th,
-      td {
-        text-align: left;
-        padding: 4px 8px;
-        vertical-align: top;
-      }
-      th {
-        width: 120px; /* 適宜調整 */
-        background-color: #f0f0f0;
-      }
-
-      /* 人物像診断の円グラフ(8/10など)は丸枠で表現してもOK */
-      .circle-score {
-        display: inline-block;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background-color: #ddd;
-        text-align: center;
-        line-height: 60px;
-        margin-right: 1rem;
-        font-size: 16px;
-        font-weight: bold;
-        color: #333;
-      }
-    </style>
+    <link rel="stylesheet" href="./css_lirbary.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <h1>応募者情報</h1>
-    <table>
-      <tr>
-        <th>氏名</th>
-        <td>name</td>
-        <th>回答時間</th>
-        <td>hh:mm～hh:mm</td>
-      </tr>
-      <tr>
-        <th>生年月日</th>
-        <td>yyyy/mm/dd</td>
-        <th>年齢</th>
-        <td>age</td>
-      </tr>
-      <tr>
-        <th>住所</th>
-        <td>東京都〇〇区</td>
-        <th>電話番号</th>
-        <td>090-0000-0000</td>
-      </tr>
-      <tr>
-        <th>メールアドレス</th>
-        <td>sample@example.co.jp</td>
-        <th></th>
-        <td></td>
-      </tr>
-    </table>
+    <div class="container">
+      <div class="wrapper-block1">
+        <div class="block1-title">
+          <div class="block1-title-right">応募者情報</div>
+          <div class="block1-title-left">新卒</div>
+        </div>
+        <div class="block-content">
+          <div class="block-content-item">
+            <div class="content-item-title">氏名</div>
+            <div class="content-item-value">name</div>
+          </div>
+          <div class="block-content-item">
+            <div class="content-item-title">回答時間</div>
+            <div class="content-item-value">hh : mm 〜 hh : mm</div>
+          </div>
+          <div class="block-content-item">
+            <div class="content-item-title">生年月日</div>
+            <div class="content-item-value">yyyy/mm/dd</div>
+          </div>
+          <div class="block-content-item">
+            <div class="content-item-title">年齢</div>
+            <div class="content-item-value">age</div>
+          </div>
+          <div class="block-content-item">
+            <div class="content-item-title">居住地</div>
+            <div class="content-item-value">東京都〇〇区</div>
+          </div>
+          <div class="block-content-item">
+            <div class="content-item-title">電話番号</div>
+            <div class="content-item-value">090-0000-0000</div>
+          </div>
+          <div class="block-content-item block-content-item-full">
+            <div class="content-item-title block-content-item-title-full">
+              メールアドレス
+            </div>
+            <div class="content-item-value">sample@example.co.jp</div>
+          </div>
+          <div class="block-content-item block-content-item-full">
+            <div class="content-item-title block-content-item-title-full">
+              最終学歴
+            </div>
+            <div class="content-item-value">
+              text text text text text text text text text text text text text
+              text text text text text text text text text text text text text
+              text text text text
+            </div>
+          </div>
+          <div class="block-content-item block-content-item-full">
+            <div class="content-item-title block-content-item-title-full">
+              志望動機
+            </div>
+            <div class="content-item-value">
+              text text text text text text text text text text text text text
+              text text text text text text text text text text text text text
+              text text text text text text text text text text text text text
+              text text text text text text text text text text text text text
+              text text text text text text text text
+            </div>
+          </div>
+          <div class="block-content-item">
+            <div class="content-item-title">希望職種</div>
+            <div class="content-item-value">
+              text text text text text text te
+            </div>
+          </div>
+          <div class="block-content-item">
+            <div class="content-item-title">希望ポジション</div>
+            <div class="content-item-value">-</div>
+          </div>
+          <div class="block-content-item block-content-item-full">
+            <div class="content-item-title block-content-item-title-full">
+              職務経歴
+            </div>
+            <div class="content-item-value">
+              text text text text text text text text text text text text text
+              text text text text text text text text text text text text text
+              text text text text
+            </div>
+          </div>
+          <div class="block-content-item">
+            <div class="content-item-title">希望年収</div>
+            <div class="content-item-value">-</div>
+          </div>
+          <div class="block-content-item">
+            <div class="content-item-title">入社可能時期</div>
+            <div class="content-item-value">-</div>
+          </div>
+        </div>
+      </div>
 
-    <table>
-      <tr>
-        <th>最終学歴</th>
-        <td>texttexttexttext...</td>
-      </tr>
-      <tr>
-        <th>志望動機</th>
-        <td>texttexttexttext...</td>
-      </tr>
-      <tr>
-        <th>希望職種</th>
-        <td>texttexttexttext</td>
-      </tr>
-      <tr>
-        <th>希望ポジション</th>
-        <td>-</td>
-      </tr>
-      <tr>
-        <th>職務経歴</th>
-        <td>-</td>
-      </tr>
-      <tr>
-        <th>希望年収</th>
-        <td>-</td>
-      </tr>
-      <tr>
-        <th>入社可能時期</th>
-        <td>-</td>
-      </tr>
-    </table>
+      <div class="page2-block2">
+        <div class="header-title">人物像診断</div>
+        <!-- stroke-dashoffset=219.91×(1−0.8)=219.91×0.2=43.98 -->
+        <div class="d-flex wrapper-block-bottom">
+          <div class="d-flex wrapper-graph">
+            <div class="graph-name">論理的思考力</div>
+            <div>
+              <svg width="80" height="80" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke="#ddd"
+                  stroke-width="8"
+                  fill="none"
+                />
 
-    <h2>人物像診断</h2>
-    <!-- 8/10の円を5つ並べる例 -->
-    <div>
-      <div class="circle-score">8/10</div>
-      論理的思考力
-    </div>
-    <div>
-      <div class="circle-score">8/10</div>
-      表現力
-    </div>
-    <div>
-      <div class="circle-score">8/10</div>
-      柔軟性
-    </div>
-    <div>
-      <div class="circle-score">8/10</div>
-      主体性
-    </div>
-    <div>
-      <div class="circle-score">8/10</div>
-      協調性
-    </div>
+                <circle
+                  id="progress-circle-1"
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke="#0073e6"
+                  stroke-width="8"
+                  fill="none"
+                  id="progress-circle-1"
+                  stroke-dasharray="219.91"
+                  stroke-dashoffset="43.98"
+                  stroke-linecap="round"
+                  transform="rotate(-90 50 50)"
+                />
 
-    <p>texttexttexttexttexttexttext ... (人物像診断に関する説明文)</p>
+                <text
+                  x="60"
+                  y="57"
+                  text-anchor="middle"
+                  font-size="18"
+                  fill="#0073e6"
+                >
+                  /10
+                </text>
+                <text
+                  x="35"
+                  y="57"
+                  id="progress-text-1"
+                  text-anchor="middle"
+                  font-size="25"
+                  fill="#0073e6"
+                >
+                  8
+                </text>
+              </svg>
+            </div>
+          </div>
+          <div class="d-flex wrapper-graph">
+            <div class="graph-name">表現力</div>
+            <div>
+              <svg width="80" height="80" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke="#ddd"
+                  stroke-width="8"
+                  fill="none"
+                />
+
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke="#0073e6"
+                  stroke-width="8"
+                  fill="none"
+                  id="progress-circle-2"
+                  stroke-dasharray="219.91"
+                  stroke-dashoffset="43.98"
+                  stroke-linecap="round"
+                  transform="rotate(-90 50 50)"
+                />
+
+                <text
+                  x="60"
+                  y="57"
+                  text-anchor="middle"
+                  font-size="18"
+                  fill="#0073e6"
+                >
+                  /10
+                </text>
+                <text
+                  x="35"
+                  y="57"
+                  id="progress-text-2"
+                  text-anchor="middle"
+                  font-size="25"
+                  fill="#0073e6"
+                >
+                  8
+                </text>
+              </svg>
+            </div>
+          </div>
+          <div class="d-flex wrapper-graph">
+            <div class="graph-name">柔軟性</div>
+            <div>
+              <svg width="80" height="80" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke="#ddd"
+                  stroke-width="8"
+                  fill="none"
+                />
+
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke="#0073e6"
+                  stroke-width="8"
+                  fill="none"
+                  id="progress-circle-3"
+                  stroke-dasharray="219.91"
+                  stroke-dashoffset="43.98"
+                  stroke-linecap="round"
+                  transform="rotate(-90 50 50)"
+                />
+
+                <text
+                  x="60"
+                  y="57"
+                  text-anchor="middle"
+                  font-size="18"
+                  fill="#0073e6"
+                >
+                  /10
+                </text>
+                <text
+                  x="35"
+                  y="57"
+                  id="progress-text-3"
+                  text-anchor="middle"
+                  font-size="25"
+                  fill="#0073e6"
+                >
+                  8
+                </text>
+              </svg>
+            </div>
+          </div>
+          <div class="d-flex wrapper-graph">
+            <div class="graph-name">主体性</div>
+            <div>
+              <svg width="80" height="80" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke="#ddd"
+                  stroke-width="8"
+                  fill="none"
+                />
+
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke="#0073e6"
+                  stroke-width="8"
+                  fill="none"
+                  id="progress-circle-4"
+                  stroke-dasharray="219.91"
+                  stroke-dashoffset="43.98"
+                  stroke-linecap="round"
+                  transform="rotate(-90 50 50)"
+                />
+
+                <text
+                  x="60"
+                  y="57"
+                  text-anchor="middle"
+                  font-size="18"
+                  fill="#0073e6"
+                >
+                  /10
+                </text>
+                <text
+                  x="35"
+                  y="57"
+                  id="progress-text-4"
+                  text-anchor="middle"
+                  font-size="25"
+                  fill="#0073e6"
+                >
+                  8
+                </text>
+              </svg>
+            </div>
+          </div>
+          <div class="d-flex wrapper-graph">
+            <div class="graph-name">協調性</div>
+            <div>
+              <svg width="80" height="80" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke="#ddd"
+                  stroke-width="8"
+                  fill="none"
+                />
+
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  id="progress-circle-5"
+                  stroke="#0073e6"
+                  stroke-width="8"
+                  fill="none"
+                  stroke-dasharray="219.91"
+                  stroke-dashoffset="43.98"
+                  stroke-linecap="round"
+                  transform="rotate(-90 50 50)"
+                />
+
+                <text
+                  x="60"
+                  y="57"
+                  text-anchor="middle"
+                  font-size="18"
+                  fill="#0073e6"
+                >
+                  /10
+                </text>
+                <text
+                  x="35"
+                  y="57"
+                  id="progress-text-5"
+                  text-anchor="middle"
+                  font-size="25"
+                  fill="#0073e6"
+                >
+                  8
+                </text>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="block2-para">
+          text text text text text text text text text text text text text text
+          text text text text text text text text text text text text text text
+          text text text text text text text text text text text text text text
+          text text text text text text text text text text text text text text
+          text text text text
+        </div>
+      </div>
+    </div>
   </body>
+
+  <script>
+    function setProgress(percent, index) {
+      console.log(percent, index);
+      const circle = document.getElementById(`progress-circle-${index}`);
+
+      const radius = 35;
+      const circumference = 2 * Math.PI * radius;
+      const offset = circumference * (1 - percent / 100);
+
+      circle.style.strokeDashoffset = offset;
+      console.log(offset);
+      document.getElementById(`progress-text-${index}`).textContent =
+        percent / 10;
+    }
+    setProgress(60, 1);
+    setProgress(70, 2);
+    setProgress(90, 3);
+    setProgress(100, 4);
+    setProgress(40, 5);
+  </script>
 </html>

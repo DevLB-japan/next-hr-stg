@@ -1,0 +1,44 @@
+.wrapper-block-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page2-block2 {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+}
+
+.header-title {
+    display: flex;
+    justify-content: flex-start;
+    color: #0057A0;
+    font-size: 14px;
+    font-weight: 700;
+    margin: 10px 0;
+    letter-spacing: 1.4px;
+}
+
+.wrapper-graph {
+    flex-direction: column;
+   align-items: center;
+   justify-content: center;
+}
+
+.block2-para {
+    background-color: #fafafa;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 8px 16px;
+    margin-top: 10px;
+}
+
+.text-point {
+    font-size: 20px;
+}
+
+.graph-name {
+    font-size: 10px;
+    font-weight: 500;
+}
